@@ -19,7 +19,9 @@
                 <h1 class="text-2xl font-black text-gray-900">PROFIT MASTER</h1>
                 <p id="companyName" class="text-xs font-bold text-blue-600 uppercase"></p>
             </div>
-            <div class="h-10 w-10 bg-gray-800 rounded-lg flex items-center justify-center text-white font-black text-xl">🛠️</div>
+            <div class="h-10 w-10 bg-gray-800 rounded-lg overflow-hidden flex items-center justify-center">
+                <img src="https://foroalfa.org/imagenes/ilustraciones/697.jpg" alt="Logo" class="h-full w-full object-cover">
+            </div>
         </div>
         
         <div id="summary" class="p-6 rounded-xl text-white shadow-lg mb-6 transition-colors duration-300 bg-green-600">
@@ -41,6 +43,10 @@
             </div>
             <div id="inputFieldsContainer" class="grid grid-cols-2 gap-4"></div>
             <button onclick="resetCalculator()" class="w-full py-4 bg-gray-200 text-gray-700 rounded-lg font-bold">RESET</button>
+            
+            <p class="text-[9px] text-gray-400 mt-4 text-center">
+                Note: Estimates are pre-tax and for internal planning purposes only.
+            </p>
         </div>
     </div>
 
@@ -65,7 +71,6 @@
                 document.getElementById('appContainer').classList.remove('hidden');
                 document.getElementById('companyName').innerText = CONFIG.companyLabel;
                 
-                // Inject input fields cleanly before running calculations
                 const container = document.getElementById('inputFieldsContainer');
                 container.innerHTML = FIELDS.map(f => `
                     <div>
@@ -99,7 +104,6 @@
             const overhead = (get('driveTime') * get('fleetCost')) + get('overhead');
             const net = price - direct - overhead;
             
-            // Handle math for division-by-zero safely when fields are blank
             const grossMargin = price > 0 ? ((price - direct) / price * 100) : 0;
             const netMargin = price > 0 ? (net / price * 100) : 0;
 
