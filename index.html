@@ -26,16 +26,19 @@
             <p class="text-xs font-bold opacity-80 uppercase tracking-widest">Net Profit</p>
             <h2 id="netProfit" class="text-4xl font-black mb-2">$0.00</h2>
             <div class="flex justify-between text-sm font-bold pt-2 border-t border-white/20">
-                <p>Gross: <span id="gMargin">0</span>%</p>
-                <p>Net: <span id="nMargin">0</span>%</p>
+                <p>Gross: <span id="gMargin">0.0</span>%</p>
+                <p>Net: <span id="nMargin">0.0</span>%</p>
             </div>
         </div>
 
         <div class="space-y-4">
-            <select id="commType" class="w-full h-12 p-3 border rounded-lg bg-white">
-                <option value="percent">Percentage (%)</option>
-                <option value="flat">Flat Fee ($)</option>
-            </select>
+            <div>
+                <select id="commType" class="w-full h-12 p-3 border rounded-lg bg-white">
+                    <option value="percent">Percentage (%)</option>
+                    <option value="flat">Flat Fee ($)</option>
+                </select>
+                <p class="text-xs font-bold text-gray-400 mt-1">Commission Type</p>
+            </div>
             <div id="inputFieldsContainer" class="grid grid-cols-2 gap-4"></div>
             <button onclick="resetCalculator()" class="w-full py-4 bg-gray-200 text-gray-700 rounded-lg font-bold">RESET</button>
         </div>
@@ -44,19 +47,17 @@
     <script>
         const CONFIG = {
             companyLabel: "YOUR COMPANY NAME HERE", 
-            storageKeyPrefix: "hvac_v1_", 
             validTokenHash: "aHZhY19zZWN1cmVfMjAyNg==" 
         };
 
         const FIELDS = [
-    { id: 'price', label: 'Price ($)' }, { id: 'commVal', label: 'Commission Value' },
-    { id: 'equipment', label: 'Equip ($)' }, { id: 'materials', label: 'Materials Cost ($)' },
-    { id: 'sub', label: 'Sub/Permit ($)' }, // <--- Changed this label here
-    { id: 'techHours', label: 'Tech Hrs' },
-    { id: 'techRate', label: 'Rate ($)' }, { id: 'driveTime', label: 'Drive Hrs' },
-    { id: 'fleetCost', label: 'Fleet ($)' }, { id: 'overhead', label: 'Overhead ($)' }
-];
-        // Init
+            { id: 'price', label: 'Price ($)' }, { id: 'commVal', label: 'Commission Value' },
+            { id: 'equipment', label: 'Equip ($)' }, { id: 'materials', label: 'Materials Cost ($)' },
+            { id: 'sub', label: 'Sub/Permit ($)' }, { id: 'techHours', label: 'Tech Hrs' },
+            { id: 'techRate', label: 'Rate ($)' }, { id: 'driveTime', label: 'Drive Hrs' },
+            { id: 'fleetCost', label: 'Fleet ($)' }, { id: 'overhead', label: 'Overhead ($)' }
+        ];
+
         window.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
             if (btoa(params.get('license') || '') === CONFIG.validTokenHash) {
@@ -64,31 +65,63 @@
                 document.getElementById('appContainer').classList.remove('hidden');
                 document.getElementById('companyName').innerText = CONFIG.companyLabel;
                 
+                // Inject input fields cleanly before running calculations
                 const container = document.getElementById('inputFieldsContainer');
-                container.innerHTML = FIELDS.map(f => `<div><label class="text-[9px] font-bold uppercase text-gray-400">${f.label}</label><input type="number" id="${f.id}" oninput="calculate()" class="w-full h-10 p-2 border rounded-lg" placeholder="0"></div>`).join('');
+                container.innerHTML = FIELDS.map(f => `
+                    <div>
+                        <label class="text-[9px] font-bold uppercase text-gray-400">${f.label}</label>
+                        <input type="number" id="${f.id}" oninput="calculate()" class="w-full h-10 p-2 border rounded-lg" placeholder="0">
+                    </div>
+                `).join('');
+                
+                document.getElementById('commType').addEventListener('change', calculate);
                 calculate();
             }
         });
 
+        const fmt = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(num);
+
         function calculate() {
-            const get = (id) => parseFloat(document.getElementById(id).value) || 0;
-            const price = get('price'), commType = document.getElementById('commType').value, commVal = get('commVal');
+            const get = (id) => {
+                const el = document.getElementById(id);
+                if (!el) return 0;
+                let val = parseFloat(el.value) || 0;
+                if (val > 99000000) { val = 99000000; el.value = val; }
+                return val;
+            };
+
+            const price = get('price');
+            const commType = document.getElementById('commType').value;
+            const commVal = get('commVal');
             const commPaid = commType === 'percent' ? price * (commVal / 100) : commVal;
+            
             const direct = get('equipment') + get('materials') + get('sub') + (get('techHours') * get('techRate')) + commPaid;
             const overhead = (get('driveTime') * get('fleetCost')) + get('overhead');
             const net = price - direct - overhead;
             
-            document.getElementById('netProfit').innerText = `$${net.toFixed(2)}`;
-            document.getElementById('gMargin').innerText = ((price-direct)/price*100 || 0).toFixed(1);
-            document.getElementById('nMargin').innerText = (net/price*100 || 0).toFixed(1);
+            // Handle math for division-by-zero safely when fields are blank
+            const grossMargin = price > 0 ? ((price - direct) / price * 100) : 0;
+            const netMargin = price > 0 ? (net / price * 100) : 0;
+
+            document.getElementById('netProfit').innerText = fmt(net);
+            document.getElementById('gMargin').innerText = grossMargin.toFixed(1);
+            document.getElementById('nMargin').innerText = netMargin.toFixed(1);
             
             const card = document.getElementById('summary');
-            const margin = (net/price*100 || 0);
-            card.className = `p-6 rounded-xl text-white shadow-lg mb-6 ${margin < 10 ? 'bg-red-600' : margin < 20 ? 'bg-amber-500' : 'bg-green-600'}`;
+            if (netMargin < 10) {
+                card.className = "p-6 rounded-xl text-white shadow-lg mb-6 transition-colors duration-300 bg-red-600";
+            } else if (netMargin < 20) {
+                card.className = "p-6 rounded-xl text-white shadow-lg mb-6 transition-colors duration-300 bg-amber-500";
+            } else {
+                card.className = "p-6 rounded-xl text-white shadow-lg mb-6 transition-colors duration-300 bg-green-600";
+            }
         }
 
         function resetCalculator() {
-            FIELDS.forEach(f => document.getElementById(f.id).value = '');
+            FIELDS.forEach(f => {
+                const el = document.getElementById(f.id);
+                if (el) el.value = '';
+            });
             calculate();
         }
     </script>
