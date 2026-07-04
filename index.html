@@ -60,8 +60,8 @@
             { id: 'price', label: 'Price ($)' }, { id: 'commVal', label: 'Commission Value' },
             { id: 'equipment', label: 'Equip ($)' }, { id: 'materials', label: 'Materials Cost ($)' },
             { id: 'sub', label: 'Sub/Permit ($)' }, { id: 'techHours', label: 'Tech Hrs' },
-            { id: 'techRate', label: 'Rate ($)' }, { id: 'driveTime', label: 'Drive Hrs' },
-            { id: 'fleetCost', label: 'Fleet ($)' }, { id: 'overhead', label: 'Overhead ($)' }
+            { id: 'techRate', label: 'Tech Rate ($)' }, { id: 'driveHours', label: 'Drive Hrs' },
+            { id: 'fleetRate', label: 'Fleet Rate ($)' }, { id: 'overhead', label: 'Overhead ($)' }
         ];
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -101,7 +101,7 @@
             const commPaid = commType === 'percent' ? price * (commVal / 100) : commVal;
             
             const direct = get('equipment') + get('materials') + get('sub') + (get('techHours') * get('techRate')) + commPaid;
-            const overhead = (get('driveTime') * get('fleetCost')) + get('overhead');
+            const overhead = (get('driveHours') * get('fleetRate')) + get('overhead');
             const net = price - direct - overhead;
             
             const grossMargin = price > 0 ? ((price - direct) / price * 100) : 0;
