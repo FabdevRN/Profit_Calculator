@@ -97,7 +97,15 @@
 
             const price = get('price');
             const commType = document.getElementById('commType').value;
-            const commVal = get('commVal');
+            let commVal = get('commVal');
+
+            // --- COMMISSION CAP LOGIC ---
+            if (commType === 'percent' && commVal > 100) {
+                commVal = 100;
+                document.getElementById('commVal').value = 100;
+            }
+            // ----------------------------
+
             const commPaid = commType === 'percent' ? price * (commVal / 100) : commVal;
             
             const direct = get('equipment') + get('materials') + get('sub') + (get('techHours') * get('techRate')) + commPaid;
